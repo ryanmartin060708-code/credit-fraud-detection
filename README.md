@@ -11,7 +11,7 @@ An **end-to-end, production-ready machine learning application** that detects fr
 
 ## 📸 Home Dashboard
 
-![Home Dashboard](assets/home_dashboard.jpeg)
+![Home Dashboard](assets/homedash.jpeg)
 
 ## 📊 Exploratory Data Analysis
 
@@ -19,7 +19,7 @@ An **end-to-end, production-ready machine learning application** that detects fr
 
 ## 📈 Model Performance
 
-![Model Performance](assets/model_performance.jpeg)
+![Model Performance](assets/modelperformance.jpeg)
 
 ## 🔍 SHAP Explainability
 
