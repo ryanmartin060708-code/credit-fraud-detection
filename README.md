@@ -9,11 +9,21 @@ An **end-to-end, production-ready machine learning application** that detects fr
 
 ---
 
-## 📸 Screenshots
+## 📸 Home Dashboard
 
-| Home Dashboard | EDA | Model Performance | SHAP |
-|---|---|---|---|
-| *(screenshot)* | *(screenshot)* | *(screenshot)* | *(screenshot)* |
+![Home Dashboard](assets/home_dashboard.jpeg)
+
+## 📊 Exploratory Data Analysis
+
+![EDA](assets/eda.jpeg)
+
+## 📈 Model Performance
+
+![Model Performance](assets/model_performance.jpeg)
+
+## 🔍 SHAP Explainability
+
+![SHAP](assets/shap.jpeg)
 
 ---
 
