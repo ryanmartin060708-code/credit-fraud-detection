@@ -76,9 +76,9 @@ credit-fraud-detection/
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/yourname/credit-fraud-detection.git
+git clone https://github.com/ryan.martin060708-code/credit-fraud-detection.git
 cd credit-fraud-detection
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m venv venv
 pip install -r requirements.txt
 ```
 
