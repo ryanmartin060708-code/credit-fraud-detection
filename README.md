@@ -198,16 +198,4 @@ SHAP (SHapley Additive exPlanations) provides game-theoretic guarantees of featu
 
 ---
 
-## 📄 License
-
-MIT — see [LICENSE](LICENSE) for details.
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome. For major changes, open an issue first to discuss what you'd like to change.
-
----
-
-*Built with ❤️ using Streamlit, Scikit-learn, XGBoost, LightGBM, SHAP, and Optuna.*
+*Built using Streamlit, Scikit-learn, XGBoost, LightGBM, SHAP, and Optuna.*
