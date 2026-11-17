@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ─────────────────────────────────────────────────────────────────
 # Credit Card Fraud Detection — Streamlit Dashboard
 # ─────────────────────────────────────────────────────────────────
@@ -13,7 +14,9 @@ WORKDIR /app
 
 # Install Python deps (cached layer)
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
+RUN --mount=type=secret,id=pip_ca,target=/run/secrets/pip_ca \
+    if [ -f /run/secrets/pip_ca ]; then export PIP_CERT=/run/secrets/pip_ca; fi; \
+    pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir -r requirements.txt
 
 # Copy project source
@@ -30,12 +33,14 @@ ENV STREAMLIT_SERVER_HEADLESS=true \
     STREAMLIT_SERVER_PORT=8501 \
     STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
-# Health-check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
-
-# Entrypoint
-CMD ["streamlit", "run", "app/Home.py", \
-     "--server.port=8501", \
-     "--server.address=0.0.0.0", \
-     "--server.enableCORS=false"]
+# Operational service checks Streamlit; no curl dependency.
+COPY requirements-ops.txt .
+RUN --mount=type=secret,id=pip_ca,target=/run/secrets/pip_ca \
+    if [ -f /run/secrets/pip_ca ]; then export PIP_CERT=/run/secrets/pip_ca; fi; \
+    pip install --no-cache-dir -r requirements-ops.txt \
+ && useradd --create-home appuser && chown -R appuser:appuser /app
+USER appuser
+EXPOSE 9000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9000/health', timeout=3)"
+CMD ["bash", "ops/start.sh"]
