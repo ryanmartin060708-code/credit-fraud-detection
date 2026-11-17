@@ -199,3 +199,91 @@ SHAP (SHapley Additive exPlanations) provides game-theoretic guarantees of featu
 ---
 
 *Built using Streamlit, Scikit-learn, XGBoost, LightGBM, SHAP, and Optuna.*
+
+
+## Operations, CI, and infrastructure
+
+This addition is an operations exercise. No AWS resources were created. The GitHub
+Actions workflow runs on every push and pull request: Ruff correctness checks over
+the repository, stricter lint on new operations code/tests, isolated pytest tests,
+Terraform formatting/validation/offline plan, Docker image build, and container
+health/metrics smoke tests. It does not publish images or deploy services.
+
+### Run and test locally
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+ruff check .
+ruff check --select E4,E7,E9,F ops tests
+pytest -q
+docker build -t credit-fraud-detection:ops .
+docker run --rm -p 127.0.0.1:9000:9000 -p 127.0.0.1:8501:8501 credit-fraud-detection:ops
+curl -f http://localhost:9000/health
+curl -f http://localhost:9000/metrics
+```
+
+The original Streamlit UI remains on port 8501. A companion Flask service on port 9000 probes Streamlit with a two-second timeout and returns 503 when unavailable. Metrics cover companion HTTP requests, NOT Streamlit sessions, inference latency, or model accuracy. The Bash entrypoint stops both child processes on shutdown or when either exits. Health means Streamlit is responding, not that trained model artifacts exist.
+
+Request logs are one JSON object per line, containing UTC timestamp, method, route
+template, status and duration. They exclude query strings, request bodies, headers,
+and raw unmatched paths. Existing application diagnostic messages are separate and
+may still be plain text. Metrics expose http_requests_total,
+http_request_duration_seconds and http_errors_total (HTTP status >= 400).
+Scrapes exclude themselves; unknown routes collapse to `unmatched` to avoid
+unbounded labels. Counters reset on process restart. Keep the documented single
+worker: multiple independent worker registries would give incomplete scrapes.
+
+### Operational automation
+
+```bash
+docker logs CONTAINER_NAME 2>&1 | python ops/summarize_logs.py
+```
+
+This deterministic Python script counts requests/errors, calculates mean latency,
+and reports malformed lines; it makes no network calls and changes no resources.
+Only request events enter the statistics. Tests cover empty/malformed input,
+success/failure responses, redacted labels/logs, and health failure handling.
+Do not paste raw operational logs or secrets into an AI service. Review aggregate
+summaries before sharing them; no AI agent or AI integration is implemented here.
+
+### Terraform: AWS ECS Fargate target
+
+Install Terraform 1.10.x (CI uses 1.10.5), then run:
+
+```bash
+terraform -chdir=infra init -backend=false -input=false
+terraform -chdir=infra fmt -check
+terraform -chdir=infra validate
+bash ops/plan.sh
+```
+
+`ops/plan.sh` clears the environment and supplies fake provider credentials through
+`offline.tfvars`. `-refresh=false` and disabled AWS credential/account/metadata checks
+allow a real Terraform resource graph plan without AWS calls. Provider installation
+requires Internet access. The plan validates syntax/schema/dependencies, not actual
+AWS permissions, quotas, reachability, or deployability. Do not apply the offline
+example: its image and operator address are deliberately placeholders.
+
+The configuration defines a VPC, subnet, Internet gateway, route table, security
+group, ECS cluster/task/service, CloudWatch log group and separate execution/task
+IAM roles. Inbound application/metrics access is restricted to an operator IPv4 /32;
+outbound Internet access is limited to HTTPS. No SSH port is opened. The execution
+role can create streams and write only to this application's log group.
+The application task role has no AWS API permissions.
+
+A later, separately authorized deployment would require a real operator CIDR and
+a published, reachable PUBLIC container image (prefer a digest), with offline_plan
+set to false. Private ECR pull permissions are intentionally not granted. The demo
+uses an operator-restricted public subnet; it has no TLS gateway, autoscaling,
+high-availability configuration, remote state backend, or alerting rules. Do not
+send sensitive data over these HTTP endpoints. A production design needs those
+additional controls and a reviewed deployment plan.
+
+For environments using a trusted corporate TLS proxy, the Dockerfile accepts an
+optional BuildKit CA secret without disabling TLS verification or embedding the CA:
+
+```bash
+docker build --secret id=pip_ca,src=/path/to/trusted-ca-bundle.pem -t credit-fraud-detection:ops .
+```
