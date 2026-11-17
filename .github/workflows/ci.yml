@@ -22,6 +22,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.10.5
+          terraform_wrapper: false
       - run: terraform -chdir=infra fmt -check
       - run: terraform -chdir=infra init -backend=false -input=false
       - run: terraform -chdir=infra validate
